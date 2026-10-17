@@ -1,0 +1,36 @@
+name: Build iLauncher APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-apk.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Extract Android project
+        run: |
+          unzip -o iLauncher_iOS_Android_Source-1.zip -d source
+          find source -maxdepth 4 -type f
+      - name: Locate Gradle project
+        run: |
+          PROJECT_DIR=$(find source -name settings.gradle.kts -print -quit | xargs dirname)
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          test -n "$PROJECT_DIR"
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build debug APK
+        run: gradle -p "$PROJECT_DIR" assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: iLauncher-debug-apk
+          path: "${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk"
+          if-no-files-found: error
